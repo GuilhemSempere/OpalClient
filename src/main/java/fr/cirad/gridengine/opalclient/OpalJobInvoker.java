@@ -1,24 +1,10 @@
-/*******************************************************************************
- * OpalClient - Copyright (C) 2020 <CIRAD>
- * This program is free software: you can redistribute it and/or modify it under
- * the terms of the GNU Affero General Public License, version 3 as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
- * details.
- *
- *
- * See <http://www.gnu.org/licenses/agpl.html> for details about GNU General
- * Public License V3.
- *******************************************************************************/
 package fr.cirad.gridengine.opalclient;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.UnknownServiceException;
 import java.rmi.RemoteException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -31,7 +17,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.ws.WebServiceException;
 
 import org.apache.axis.types.URI;
 import org.apache.log4j.Logger;
@@ -44,7 +29,6 @@ import edu.sdsc.nbcr.opal.types.JobInputType;
 import edu.sdsc.nbcr.opal.types.JobSubOutputType;
 import edu.sdsc.nbcr.opal.types.StatusOutputType;
 
-@SuppressWarnings("serial")
 public class OpalJobInvoker extends HttpServlet
 {
 	private static final Logger LOG = Logger.getLogger(OpalJobInvoker.class);
@@ -58,14 +42,51 @@ public class OpalJobInvoker extends HttpServlet
 	public static final int STATUS_UNSUBMITTED = 32;	 
 	public static final int STATUS_STAGE_IN = 64;	  
 	public static final int STATUS_STAGE_OUT = 128;	  
+	//public static final int STATUS_ALL = 65535;
 	  
 	private static HashMap<String, AppServicePortTypeProxy> serviceProxies = new HashMap<String, AppServicePortTypeProxy>();
+	
+    public static void main(String args[]) throws Exception 
+    {
+    	invoke("sleep", "", new URI[0], null, 1, "guilhem.sempere@cirad.fr", false);
 
-    public static BlockingOutputType invokeBlocking(String sServiceName, String cmdArgs, URI[] inputDocs, Integer numProcs, String notificationEmail) throws IOException
+    	//invoke("gevalt", "-phasedGen -hwcutoff 0.0 -pedfile ALLELE.txt.ped", new URI[] { new URI("http://gohelle:8080/Haplophyle/uploaded/D411D5BBFD4E667008F4F668BFB6DC4E/ALLELE.txt.ped") }, null, true);    	
+//    	invoke("sleeper", "20", new URI[0], 1, null, false);
+    	//invoke("blastall", "-d \"/bank/musa_acuminata/Musa_acuminata.fa\" -i Carto_markers_jaune_10062010.fa -o Carto_markers_jaune_10062010.blast -p blastn", new URI[] { new URI("http://cc2-web1:8080/test/Carto_markers_jaune_10062010.fa"), new URI("http://cc2-web1:8080/test/context.txt") }, null, false);
+    	//invoke("splittedBlast", "--q web --input liste_forward_reverse_primer.fa --program blastn --database \"/bank/musa_acuminata/Musa_acuminata.fa\" --output liste_forward_reverse_primer.blast --evalue 1e-10 --max_target_seq 3 --format 5 --directory .", new URI[] { new URI("http://cc2-web1:8080/test/liste_forward_reverse_primer.fa") }, null, false);
+//    	invoke("blastn", "-db \"/bank/musa_acuminata/Musa_acuminata.fa\" -query liste_forward_reverse_primer.fa -out liste_forward_reverse_primer.blast", new URI[] { new URI("http://cc2-web1:8080/test/liste_forward_reverse_primer.fa"), new URI("http://cc2-web1:8080/test/context.txt") }, null, "guilhem.sempere@cirad.fr", false);
+    	
+		/* OPAL Call */
+//		JobSubOutputType subOut = OpalJobInvoker.invokeNonBlocking("blastp", "-db \"/bank/greenphyl/ORYSA\" -evalue 1e-10 -query sample.fa -out blastp.out", new URI[] { new URI("http://cc2-web1:8080/opal2/test_data/blastp/sample.fa"), new URI("http://cc2-web1:8080/opal2/test_data/blastp/context.txt") }, 1, null);
+//    	JobSubOutputType subOut = OpalJobInvoker.invokeNonBlocking("smartpca", "-k 791 -i exported.eigenstratgeno -a exported.snp -b exported.ind", new URI[] { new URI[] { new URI("http://cc2-web1:8080/opal2/test_data/smartpca/exported.eigenstratgeno"), new URI("http://cc2-web1:8080/opal2/test_data/smartpca/exported.snp"), new URI("http://cc2-web1:8080/opal2/test_data/smartpca/exported.ind"), new URI("http://cc2-web1:8080/opal2/test_data/smartpca/context.txt")) }, null, null);
+    	JobSubOutputType subOut = OpalJobInvoker.invokeNonBlocking("assignment", 
+    			"cattleV1_51050variants_1945individuals.snp cattleV1_51050variants_1945individuals.ind cattleV1_51050variants_1945individuals.eigenstratgeno variantSynonyms.txt codeConversion.txt to_assign.map 3ind_to_assign.ped 3 0.2", 
+    			new URI[] { new URI("http://cc2-web1:8080/opal2/test_data/assignment/cattleV1_51050variants_1945individuals.snp"), new URI("http://cc2-web1:8080/opal2/test_data/assignment/cattleV1_51050variants_1945individuals.ind"), new URI("http://cc2-web1:8080/opal2/test_data/assignment/cattleV1_51050variants_1945individuals.eigenstratgeno"), new URI("http://cc2-web1:8080/opal2/test_data/assignment/variantSynonyms.txt"), new URI("http://cc2-web1:8080/opal2/test_data/assignment/codeConversion.txt"), new URI("http://cc2-web1:8080/opal2/test_data/assignment/to_assign.map"), new URI("http://cc2-web1:8080/opal2/test_data/assignment/3ind_to_assign.ped"), new URI("http://cc2-web1:8080/opal2/test_data/assignment/context.txt") },
+    			null, null, null);
+    	
+    	StatusOutputType status = subOut.getStatus();
+
+		int code = status.getCode();
+		if (code != OpalJobInvoker.STATUS_PENDING && code != OpalJobInvoker.STATUS_ACTIVE && code != OpalJobInvoker.STATUS_DONE && code != OpalJobInvoker.STATUS_STAGE_IN && code != OpalJobInvoker.STATUS_STAGE_OUT)			    
+		    throw new Exception("The execution of the OpalClient failed with the following error: " + status.getMessage() + ". You can consult output and error file here: " + status.getBaseURL() + "/stdout.txt, " + status.getBaseURL() + "/stderr.txt" );
+		
+		String jobID = subOut.getJobID();
+		SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss");
+		
+		StatusOutputType sot = null;
+		while (sot == null || (sot.getCode() != OpalJobInvoker.STATUS_DONE && sot.getCode() != OpalJobInvoker.STATUS_FAILED))
+		{
+			sot = OpalJobInvoker.getJobStatus("smartpca", jobID);
+			System.out.println(sdf.format(new Date()) + " | " + jobID + " -> " + sot.getCode());
+			Thread.sleep(1000);
+		}			
+    }
+
+    public static BlockingOutputType invokeBlocking(String sServiceName, String cmdArgs, URI[] inputDocs, String[] attachedFiles, Integer numProcs, String notificationEmail) throws IOException
     {
     	try
     	{
-	    	return (BlockingOutputType) invoke(sServiceName, cmdArgs, inputDocs, numProcs, notificationEmail, true);
+	    	return (BlockingOutputType) invoke(sServiceName, cmdArgs, inputDocs, attachedFiles, numProcs, notificationEmail, true);
 		}
 		catch (FaultType ft)
 		{
@@ -73,11 +94,11 @@ public class OpalJobInvoker extends HttpServlet
 		}
     }
     
-    public static JobSubOutputType invokeNonBlocking(String sServiceName, String cmdArgs, URI[] inputDocs, Integer numProcs, String notificationEmail) throws IOException
+    public static JobSubOutputType invokeNonBlocking(String sServiceName, String cmdArgs, URI[] inputDocs, String[] attachedFiles, Integer numProcs, String notificationEmail) throws IOException
     {
     	try
     	{
-    		return (JobSubOutputType) invoke(sServiceName, cmdArgs, inputDocs, numProcs, notificationEmail, false);
+    		return (JobSubOutputType) invoke(sServiceName, cmdArgs, inputDocs, attachedFiles, numProcs, notificationEmail, false);
     	}
     	catch (FaultType ft)
     	{
@@ -85,7 +106,7 @@ public class OpalJobInvoker extends HttpServlet
     	}
     }
 	
-	private static Serializable invoke(String sServiceName, String cmdArgs, URI[] inputDocs, Integer numProcs, String notificationEmail, boolean fBlocking) throws IOException
+	private static Serializable invoke(String sServiceName, String cmdArgs, URI[] inputDocs, String[] attachedFiles, Integer numProcs, String notificationEmail, boolean fBlocking) throws IOException
 	{
 		JobInputType in = new JobInputType();
 
@@ -94,14 +115,25 @@ public class OpalJobInvoker extends HttpServlet
 		
 		AppServicePortTypeProxy appServicePort = getServiceProxyByName(sServiceName);
 		
-		for (URI uri : inputDocs)
-		{
-			String[] splittedInputURL = uri.toString().split("/");
-			InputFileType infile = new InputFileType();
-			String sFileName = splittedInputURL[splittedInputURL.length - 1];
-			infile.setName(sFileName);
-			infile.setLocation(uri);
-			inputFileVector.add(infile);			
+		if (inputDocs != null)
+			for (URI uri : inputDocs) {
+				String[] splittedInputURL = uri.toString().split("/");
+				InputFileType infile = new InputFileType();
+				String sFileName = splittedInputURL[splittedInputURL.length - 1];
+				infile.setName(sFileName);
+				infile.setLocation(uri);
+				inputFileVector.add(infile);			
+			}
+
+		if (attachedFiles != null) {
+			for (int i = 0; i < attachedFiles.length; i++) {
+				DataHandler dh = new DataHandler(new FileDataSource(attachedFiles[i]));
+				InputFileType infile = new InputFileType();
+				File f = new File(attachedFiles[i]);
+				infile.setName(f.getName());
+				infile.setAttachment(dh);
+				inputFileVector.add(infile);
+			}
 		}
 
 		if (cmdArgs != null) {
@@ -121,6 +153,7 @@ public class OpalJobInvoker extends HttpServlet
 			LOG.debug("Instructing server to notify on job completion");
 			in.setSendNotification(true);
 		}
+
 
 		
 		//////////////////////////////////////////////////////////////////////////////////
@@ -237,7 +270,7 @@ public class OpalJobInvoker extends HttpServlet
 		return subOut;
 	}
 	
-	private static AppServicePortTypeProxy getServiceProxyByName(String sServiceName)
+	private static AppServicePortTypeProxy getServiceProxyByName(String sServiceName) throws UnknownServiceException
 	{		
 		try
 		{
@@ -253,11 +286,11 @@ public class OpalJobInvoker extends HttpServlet
 		}
 		catch (java.util.MissingResourceException mre)
 		{
-			throw new WebServiceException("No such service declared in properties file: " + sServiceName);
+			throw new UnknownServiceException("No such service declared in properties file: " + sServiceName);
 		}
 	}
 	
-	public static StatusOutputType getJobStatus(String sServiceName, String sJobID) throws FaultType, RemoteException
+	public static StatusOutputType getJobStatus(String sServiceName, String sJobID) throws FaultType, RemoteException, UnknownServiceException
 	{
 		return getServiceProxyByName(sServiceName).queryStatus(sJobID);
 	}
